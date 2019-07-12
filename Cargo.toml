@@ -5,3 +5,7 @@ authors = ["Tim Hütz <tim@huetz.biz>"]
 edition = "2018"
 
 [dependencies]
+chrono = "0.4.7"
+fern = "0.5.8"
+log = "0.4.7"
+portaudio = "0.7.0"
