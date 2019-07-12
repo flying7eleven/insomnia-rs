@@ -1,5 +1,5 @@
 use chrono::{Local, Timelike};
-use log::{info, LevelFilter};
+use log::{debug, info, LevelFilter};
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -30,6 +30,13 @@ fn initialize_logging() {
     }
 }
 
+fn generate_record_command() -> String {
+    format!(
+        "arecord -D hw:1,0 -d 60 -f S16_LE -r 48000 {}.wav",
+        Local::now().naive_local().format("%Y%m%d%H%M%S")
+    ) // https://doc.rust-lang.org/std/process/struct.Command.html
+}
+
 fn main() {
     initialize_logging();
 
@@ -40,5 +47,5 @@ fn main() {
     );
     wait_until_full_minute();
 
-    // start the recording stuff in minute
+    info!("{}", generate_record_command());
 }
