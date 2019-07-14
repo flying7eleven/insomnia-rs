@@ -1,5 +1,6 @@
 use chrono::{Local, Timelike};
-use log::{debug, info, LevelFilter};
+use log::{error, info, LevelFilter};
+use std::process::Command;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -37,8 +38,27 @@ fn generate_record_command() -> String {
     ) // https://doc.rust-lang.org/std/process/struct.Command.html
 }
 
+fn is_recording_tool_available() -> bool {
+    let maybe_exit_status = Command::new("arecord").args(&["--version"]).status();
+
+    // if there was an error, we could not execute the command
+    if maybe_exit_status.is_err() {
+        return false;
+    }
+
+    // return the return status of the executed command
+    let exit_status = maybe_exit_status.unwrap();
+    exit_status.success()
+}
+
 fn main() {
     initialize_logging();
+
+    // before we continue we should ensure that the required recording tool is available
+    if !is_recording_tool_available() {
+        error!("The arecord tool seems not to be available on your computer. Terminating.");
+        return;
+    }
 
     // wait until we reached the next full minute
     info!(
