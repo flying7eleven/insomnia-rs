@@ -1,0 +1,10 @@
+name: insomnia-rs
+version: "0.1.0"
+author: Tim Huetz <tim@huetz.biz>
+about: <description missing>
+args:
+  - help:
+      short: h
+      long: help
+      help: Shows this help
+      takes_value: false

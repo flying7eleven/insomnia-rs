@@ -1,4 +1,5 @@
 use chrono::{Local, Timelike};
+use clap::{load_yaml, App};
 use log::{error, info, LevelFilter};
 use std::process::Command;
 use std::thread::sleep;
@@ -59,6 +60,10 @@ fn main() {
         error!("The arecord tool seems not to be available on your computer. Terminating.");
         return;
     }
+
+    // configure the command line parser
+    let configuration_parser_config = load_yaml!("cli.yml");
+    let matches = App::from_yaml(configuration_parser_config).get_matches();
 
     // wait until we reached the next full minute
     info!(
