@@ -1,9 +1,16 @@
 use chrono::{Local, Timelike};
 use clap::{load_yaml, App};
-use log::{error, info, LevelFilter};
-use std::process::Command;
+use lazy_static::lazy_static;
+use log::{debug, error, info, LevelFilter};
+use regex::bytes::Regex;
+use std::collections::HashMap;
+use std::process::{Command, Stdio};
 use std::thread::sleep;
 use std::time::Duration;
+
+lazy_static! {
+    static ref CARD_AND_DEVICES_REGEX: Regex = Regex::new(r"card (\d*):.*device (\d*):").unwrap();
+}
 
 fn wait_until_full_minute() {
     let last_timestamp = Local::now().naive_local();
@@ -39,8 +46,35 @@ fn generate_record_command() -> String {
     ) // https://doc.rust-lang.org/std/process/struct.Command.html
 }
 
+fn get_available_cards() -> HashMap<u8, (u8, u8)> {
+    let maybe_list_devices_outout = Command::new("arecord").args(&["-l"]).output();
+
+    //
+    if maybe_list_devices_outout.is_err() {
+        panic!("Could not get list of audio devices!")
+    }
+
+    //
+    let list_devices_output = maybe_list_devices_outout.unwrap();
+    let actual_text_output = String::from_utf8_lossy(&list_devices_output.stdout).to_string();
+    let mut device_list = HashMap::new();
+
+    //
+    for cap in CARD_AND_DEVICES_REGEX.captures_iter(actual_text_output.as_bytes()) {
+        let card_id: u8 = String::from_utf8_lossy(&cap[1]).parse().unwrap();
+        let device_id: u8 = String::from_utf8_lossy(&cap[2]).parse().unwrap();
+        debug!("Found audio card {} with device {}", card_id, device_id);
+        device_list.insert(card_id, (card_id, device_id));
+    }
+
+    device_list
+}
+
 fn is_recording_tool_available() -> bool {
-    let maybe_exit_status = Command::new("arecord").args(&["--version"]).status();
+    let maybe_exit_status = Command::new("arecord")
+        .args(&["--version"])
+        .stdout(Stdio::null())
+        .status();
 
     // if there was an error, we could not execute the command
     if maybe_exit_status.is_err() {
@@ -60,6 +94,8 @@ fn main() {
         error!("The arecord tool seems not to be available on your computer. Terminating.");
         return;
     }
+
+    get_available_cards();
 
     // configure the command line parser
     let configuration_parser_config = load_yaml!("cli.yml");
