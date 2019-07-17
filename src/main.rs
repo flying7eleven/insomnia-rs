@@ -1,5 +1,5 @@
 use chrono::{Local, Timelike};
-use clap::{load_yaml, App};
+use clap::{crate_authors, crate_description, crate_name, crate_version, load_yaml, App};
 use lazy_static::lazy_static;
 use log::{debug, error, info, LevelFilter};
 use regex::bytes::Regex;
@@ -99,7 +99,12 @@ fn main() {
 
     // configure the command line parser
     let configuration_parser_config = load_yaml!("cli.yml");
-    let matches = App::from_yaml(configuration_parser_config).get_matches();
+    let matches = App::from_yaml(configuration_parser_config)
+        .author(crate_authors!())
+        .version(crate_version!())
+        .name(crate_name!())
+        .about(crate_description!())
+        .get_matches();
 
     // wait until we reached the next full minute
     info!(
