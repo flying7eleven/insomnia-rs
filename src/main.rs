@@ -4,9 +4,26 @@ use lazy_static::lazy_static;
 use log::{debug, error, info, LevelFilter};
 use regex::bytes::Regex;
 use std::collections::HashMap;
+use std::error;
+use std::fmt;
 use std::process::{Command, Stdio};
 use std::thread::sleep;
 use std::time::Duration;
+
+#[derive(Debug, Clone)]
+struct AudioDeviceError;
+
+impl fmt::Display for AudioDeviceError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "unknown audio device error")
+    }
+}
+
+impl error::Error for AudioDeviceError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        None
+    }
+}
 
 lazy_static! {
     static ref CARD_AND_DEVICES_REGEX: Regex = Regex::new(r"card (\d*):.*device (\d*):").unwrap();
@@ -46,16 +63,37 @@ fn generate_record_command() -> String {
     ) // https://doc.rust-lang.org/std/process/struct.Command.html
 }
 
-fn get_available_cards() -> HashMap<u8, (u8, u8)> {
-    let maybe_list_devices_outout = Command::new("arecord").args(&["-l"]).output();
+/// Get a list of valid audio cards and their devices.
+///
+/// # Errors
+/// TODO
+///
+/// # Example
+///
+/// Simple way of using this method:
+///
+/// ```
+/// let devices = get_available_cards();
+///
+/// if devices.is_err() {
+///   panic!("Could not get the available audio devices");
+/// }
+///
+/// for device in devices.unwrap() {
+///   ...
+/// }
+/// ```
+fn get_available_cards() -> Result<HashMap<u8, (u8, u8)>, AudioDeviceError> {
+    let maybe_list_devices_output = Command::new("arecord").args(&["-l"]).output();
 
     //
-    if maybe_list_devices_outout.is_err() {
-        panic!("Could not get list of audio devices!")
+    if maybe_list_devices_output.is_err() {
+        error!("Could not get list of audio devices!");
+        return Err(AudioDeviceError);
     }
 
     //
-    let list_devices_output = maybe_list_devices_outout.unwrap();
+    let list_devices_output = maybe_list_devices_output.unwrap();
     let actual_text_output = String::from_utf8_lossy(&list_devices_output.stdout).to_string();
     let mut device_list = HashMap::new();
 
@@ -67,7 +105,7 @@ fn get_available_cards() -> HashMap<u8, (u8, u8)> {
         device_list.insert(card_id, (card_id, device_id));
     }
 
-    device_list
+    Ok(device_list)
 }
 
 fn is_recording_tool_available() -> bool {
@@ -95,7 +133,7 @@ fn main() {
         return;
     }
 
-    get_available_cards();
+    let available_audio_devices = get_available_cards();
 
     // configure the command line parser
     let configuration_parser_config = load_yaml!("cli.yml");
