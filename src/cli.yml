@@ -3,13 +3,15 @@ version: <filled automatically>
 author: <filled automatically>
 about: <filled automatically>
 args:
+  - duration:
+      long: duration
+      help: Select the number of minutes to record in a single file (using 1 by default).
+      takes_value: true
   - card:
-      short: c
       long: card
       help: Select the audio card to use for the recording process (using 0 by default).
       takes_value: true
   - device:
-      short: d
       long: device
       help: Select the audio device to use for the recording process (using 0 by default).
       takes_value: true
