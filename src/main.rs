@@ -56,14 +56,14 @@ fn initialize_logging() {
     }
 }
 
-fn record_for_one_minute(card: u8, device: u8) -> String {
+fn record_audio(card: u8, device: u8, duration_in_seconds: u32) -> String {
     let file_prefix = Local::now()
         .naive_local()
         .format("%Y%m%d%H%M%S")
         .to_string();
-    let record_status = Command::new("arecord")
+    let _record_status = Command::new("arecord")
         .arg(format!("-Dhw:{},{}", card, device))
-        .arg("-d60")
+        .arg(format!("-d{}", duration_in_seconds))
         .arg("-fS16_LE")
         .arg("-c2")
         .arg("-r48000")
@@ -91,7 +91,7 @@ fn convert_audio_file(file_prefix: String) {
             "File conversion successful, removing old {}.wav file",
             file_prefix
         );
-        Command::new("rm")
+        let _remove_status = Command::new("rm")
             .arg("-rf")
             .arg(format!("{}.wav", file_prefix))
             .stderr(Stdio::null())
@@ -177,7 +177,7 @@ fn main() {
 
     // get all audio devices of the computer
     let available_audio_devices = get_available_cards()
-        .map_err(|error| panic!("Could not find any suitable audio devices. Terminating."))
+        .map_err(|_error| panic!("Could not find any suitable audio devices. Terminating."))
         .unwrap();
 
     // configure the command line parser
@@ -189,6 +189,30 @@ fn main() {
         .about(crate_description!())
         .get_matches();
 
+    // get the recording duration
+    let recording_duration = if matches.is_present("duration") {
+        let duration_match = matches.value_of("duration").unwrap();
+        60 * duration_match.parse::<u32>().unwrap()
+    } else {
+        60
+    };
+
+    // get the audio card
+    let audio_card = if matches.is_present("card") {
+        let card_match = matches.value_of("card").unwrap();
+        card_match.parse::<u8>().unwrap()
+    } else {
+        0
+    };
+
+    // get the audio device
+    let audio_device = if matches.is_present("device") {
+        let device_match = matches.value_of("device").unwrap();
+        device_match.parse::<u8>().unwrap()
+    } else {
+        0
+    };
+
     // wait until we reached the next full minute
     info!(
         "The current time is {}. We are waiting for the next full minute to start.",
@@ -196,19 +220,11 @@ fn main() {
     );
     wait_until_full_minute();
 
-    // a list of all currently running conversion threads
-    let mut converting_threads = vec![];
-
     // record audio files endlessly and convert them to mp3s
     loop {
-        let file_prefix = record_for_one_minute(0, 0);
-        converting_threads.push(thread::spawn(move || {
+        let file_prefix = record_audio(audio_device, audio_card, recording_duration);
+        thread::spawn(move || {
             convert_audio_file(file_prefix);
-        }));
-    }
-
-    // wait for all potential converting threads to finish
-    for child in converting_threads {
-        let _ = child.join();
+        });
     }
 }
