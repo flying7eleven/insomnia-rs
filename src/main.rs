@@ -56,12 +56,13 @@ fn initialize_logging() {
     }
 }
 
-fn record_audio(card: u8, device: u8, duration_in_seconds: u32) -> String {
+fn record_audio(card: u8, device: u8, duration_in_seconds: u32) -> Option<String> {
     let file_prefix = Local::now()
         .naive_local()
         .format("%Y%m%d%H%M%S")
         .to_string();
-    let _record_status = Command::new("arecord")
+
+    let record_status = Command::new("arecord")
         .arg(format!("-Dhw:{},{}", card, device))
         .arg(format!("-d{}", duration_in_seconds))
         .arg("-fS16_LE")
@@ -72,7 +73,11 @@ fn record_audio(card: u8, device: u8, duration_in_seconds: u32) -> String {
         .stdout(Stdio::null())
         .status();
 
-    file_prefix
+    if record_status.is_ok() && record_status.unwrap().success() {
+        return Some(file_prefix);
+    }
+
+    None
 }
 
 fn convert_audio_file(file_prefix: String) {
@@ -248,8 +253,12 @@ fn main() {
     // record audio files endlessly and convert them to mp3s
     loop {
         let file_prefix = record_audio(audio_device, audio_card, recording_duration);
-        thread::spawn(move || {
-            convert_audio_file(file_prefix);
-        });
+        if file_prefix.is_some() {
+            thread::spawn(move || {
+                convert_audio_file(file_prefix.unwrap());
+            });
+        } else {
+            error!("Failed to record an audio stream.");
+        }
     }
 }
