@@ -4,11 +4,11 @@ use lazy_static::lazy_static;
 use log::{debug, error, info, LevelFilter};
 use regex::bytes::Regex;
 use std::collections::HashMap;
-use std::error;
 use std::fmt;
 use std::process::{Command, Stdio};
 use std::thread::sleep;
 use std::time::Duration;
+use std::{error, thread};
 
 #[derive(Debug, Clone)]
 struct AudioDeviceError;
@@ -56,11 +56,48 @@ fn initialize_logging() {
     }
 }
 
-fn generate_record_command() -> String {
-    format!(
-        "arecord -D hw:1,0 -d 60 -f S16_LE -r 48000 {}.wav",
-        Local::now().naive_local().format("%Y%m%d%H%M%S")
-    ) // https://doc.rust-lang.org/std/process/struct.Command.html
+fn record_for_one_minute(card: u8, device: u8) -> String {
+    let file_prefix = Local::now()
+        .naive_local()
+        .format("%Y%m%d%H%M%S")
+        .to_string();
+    let record_status = Command::new("arecord")
+        .arg(format!("-Dhw:{},{}", card, device))
+        .arg("-d60")
+        .arg("-fS16_LE")
+        .arg("-c2")
+        .arg("-r48000")
+        .arg(format!("{}.wav", file_prefix))
+        .stderr(Stdio::null())
+        .stdout(Stdio::null())
+        .status();
+
+    file_prefix
+}
+
+fn convert_audio_file(file_prefix: String) {
+    info!("Converting {}.wav to {}.mp3", file_prefix, file_prefix);
+    let convert_status = Command::new("ffmpeg")
+        .arg("-i")
+        .arg(format!("{}.wav", file_prefix))
+        .arg(format!("{}.mp3", file_prefix))
+        .stderr(Stdio::null())
+        .stdout(Stdio::null())
+        .status();
+
+    // if the conversion was successful, we can remove the old record of the audio file
+    if !convert_status.is_err() && convert_status.unwrap().success() {
+        debug!(
+            "File conversion successful, removing old {}.wav file",
+            file_prefix
+        );
+        Command::new("rm")
+            .arg("-rf")
+            .arg(format!("{}.wav", file_prefix))
+            .stderr(Stdio::null())
+            .stdout(Stdio::null())
+            .spawn();
+    }
 }
 
 /// Get a list of valid audio cards and their devices.
@@ -105,6 +142,11 @@ fn get_available_cards() -> Result<HashMap<u8, (u8, u8)>, AudioDeviceError> {
         device_list.insert(card_id, (card_id, device_id));
     }
 
+    // if we do not have found any audio devices, also exit with an error
+    if device_list.is_empty() {
+        return Err(AudioDeviceError);
+    }
+
     Ok(device_list)
 }
 
@@ -133,7 +175,10 @@ fn main() {
         return;
     }
 
-    let available_audio_devices = get_available_cards();
+    // get all audio devices of the computer
+    let available_audio_devices = get_available_cards()
+        .map_err(|error| panic!("Could not find any suitable audio devices. Terminating."))
+        .unwrap();
 
     // configure the command line parser
     let configuration_parser_config = load_yaml!("cli.yml");
@@ -151,5 +196,19 @@ fn main() {
     );
     wait_until_full_minute();
 
-    info!("{}", generate_record_command());
+    // a list of all currently running conversion threads
+    let mut converting_threads = vec![];
+
+    // record audio files endlessly and convert them to mp3s
+    loop {
+        let file_prefix = record_for_one_minute(0, 0);
+        converting_threads.push(thread::spawn(move || {
+            convert_audio_file(file_prefix);
+        }));
+    }
+
+    // wait for all potential converting threads to finish
+    for child in converting_threads {
+        let _ = child.join();
+    }
 }
