@@ -252,7 +252,7 @@ fn main() {
 
     // record audio files endlessly and convert them to mp3s
     loop {
-        let file_prefix = record_audio(audio_device, audio_card, recording_duration);
+        let file_prefix = record_audio(audio_card, audio_device, recording_duration);
         if file_prefix.is_some() {
             thread::spawn(move || {
                 convert_audio_file(file_prefix.unwrap());
