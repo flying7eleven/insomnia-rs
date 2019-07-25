@@ -86,7 +86,7 @@ fn convert_audio_file(file_prefix: String) {
         .status();
 
     // if the conversion was successful, we can remove the old record of the audio file
-    if !convert_status.is_err() && convert_status.unwrap().success() {
+    if convert_status.is_ok() && convert_status.unwrap().success() {
         debug!(
             "File conversion successful, removing old {}.wav file",
             file_prefix
@@ -166,6 +166,21 @@ fn is_recording_tool_available() -> bool {
     exit_status.success()
 }
 
+fn is_valid_device_selection(
+    available_audio_devices: &HashMap<u8, (u8, u8)>,
+    audio_card: u8,
+    audio_device: u8,
+) -> bool {
+    let current_audio_card_device_tuple = available_audio_devices.get(&audio_card);
+    if current_audio_card_device_tuple.is_some() {
+        let (_, cur_device) = current_audio_card_device_tuple.unwrap();
+        if *cur_device == audio_device {
+            return true;
+        }
+    }
+    false
+}
+
 fn main() {
     initialize_logging();
 
@@ -212,6 +227,16 @@ fn main() {
     } else {
         0
     };
+
+    // be sure that the audio device selection makes sense
+    if !is_valid_device_selection(&available_audio_devices, audio_card, audio_device) {
+        panic!("An invalid combination of audio devices was detected.");
+    }
+
+    // ensure a sensable recording duration was selected
+    if recording_duration < 60 || recording_duration > 600 {
+        panic!("Please select a recording duration between 1 and 10 minutes.");
+    }
 
     // wait until we reached the next full minute
     info!(
