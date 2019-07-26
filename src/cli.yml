@@ -15,3 +15,7 @@ args:
       long: device
       help: Select the audio device to use for the recording process (using 0 by default).
       takes_value: true
+  - no-encoding:
+      long: no-encoding
+      help: Disable the encoding of the recorded files to mp3 using ffmpeg.
+      takes_value: false

@@ -189,6 +189,15 @@ fn is_valid_device_selection(
 fn main() {
     initialize_logging();
 
+    // configure the command line parser
+    let configuration_parser_config = load_yaml!("cli.yml");
+    let matches = App::from_yaml(configuration_parser_config)
+        .author(crate_authors!())
+        .version(crate_version!())
+        .name(crate_name!())
+        .about(crate_description!())
+        .get_matches();
+
     // before we continue we should ensure that the required recording tool is available
     if !is_recording_tool_available() {
         error!("The arecord tool seems not to be available on your computer. Terminating.");
@@ -199,15 +208,6 @@ fn main() {
     let available_audio_devices = get_available_cards()
         .map_err(|_error| panic!("Could not find any suitable audio devices. Terminating."))
         .unwrap();
-
-    // configure the command line parser
-    let configuration_parser_config = load_yaml!("cli.yml");
-    let matches = App::from_yaml(configuration_parser_config)
-        .author(crate_authors!())
-        .version(crate_version!())
-        .name(crate_name!())
-        .about(crate_description!())
-        .get_matches();
 
     // get the recording duration
     let recording_duration = if matches.is_present("duration") {
@@ -233,6 +233,12 @@ fn main() {
         0
     };
 
+    // check if we should encode the files or not
+    let should_encode_files = !matches.is_present("no-encoding");
+    if !should_encode_files {
+        info!("Encoding of the audio files was disabled by a runtime flag");
+    }
+
     // be sure that the audio device selection makes sense
     if !is_valid_device_selection(&available_audio_devices, audio_card, audio_device) {
         panic!("An invalid combination of audio devices was detected.");
@@ -254,9 +260,13 @@ fn main() {
     loop {
         let file_prefix = record_audio(audio_card, audio_device, recording_duration);
         if file_prefix.is_some() {
-            thread::spawn(move || {
-                convert_audio_file(file_prefix.unwrap());
-            });
+            let file_prefix_unwrapped = file_prefix.unwrap();
+            info!("The recording {} was finished", file_prefix_unwrapped);
+            if should_encode_files {
+                thread::spawn(move || {
+                    convert_audio_file(file_prefix_unwrapped);
+                });
+            }
         } else {
             error!("Failed to record an audio stream.");
         }
