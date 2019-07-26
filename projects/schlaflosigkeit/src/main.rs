@@ -1,9 +1,10 @@
 use chrono::{Local, Timelike};
 use clap::{crate_authors, crate_description, crate_name, crate_version, load_yaml, App};
-use insomnia::get_available_cards;
-use log::{debug, error, info, LevelFilter};
+use insomnia::{
+    convert_audio_file, get_available_cards, is_recording_tool_available, record_audio,
+};
+use log::{error, info, LevelFilter};
 use std::collections::HashMap;
-use std::process::{Command, Stdio};
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
@@ -33,71 +34,6 @@ fn initialize_logging() {
     if logging_framework.is_err() {
         panic!("Could not initialize the logging framework. Terminating!");
     }
-}
-
-fn record_audio(card: u8, device: u8, duration_in_seconds: u32) -> Option<String> {
-    let file_prefix = Local::now()
-        .naive_local()
-        .format("%Y%m%d%H%M%S")
-        .to_string();
-
-    let record_status = Command::new("arecord")
-        .arg(format!("-Dhw:{},{}", card, device))
-        .arg(format!("-d{}", duration_in_seconds))
-        .arg("-fS16_LE")
-        .arg("-c2")
-        .arg("-r48000")
-        .arg(format!("{}.wav", file_prefix))
-        .stderr(Stdio::null())
-        .stdout(Stdio::null())
-        .status();
-
-    if record_status.is_ok() && record_status.unwrap().success() {
-        return Some(file_prefix);
-    }
-
-    None
-}
-
-fn convert_audio_file(file_prefix: String) {
-    info!("Converting {}.wav to {}.mp3", file_prefix, file_prefix);
-    let convert_status = Command::new("ffmpeg")
-        .arg("-i")
-        .arg(format!("{}.wav", file_prefix))
-        .arg(format!("{}.mp3", file_prefix))
-        .stderr(Stdio::null())
-        .stdout(Stdio::null())
-        .status();
-
-    // if the conversion was successful, we can remove the old record of the audio file
-    if convert_status.is_ok() && convert_status.unwrap().success() {
-        debug!(
-            "File conversion successful, removing old {}.wav file",
-            file_prefix
-        );
-        let _remove_status = Command::new("rm")
-            .arg("-rf")
-            .arg(format!("{}.wav", file_prefix))
-            .stderr(Stdio::null())
-            .stdout(Stdio::null())
-            .spawn();
-    }
-}
-
-fn is_recording_tool_available() -> bool {
-    let maybe_exit_status = Command::new("arecord")
-        .args(&["--version"])
-        .stdout(Stdio::null())
-        .status();
-
-    // if there was an error, we could not execute the command
-    if maybe_exit_status.is_err() {
-        return false;
-    }
-
-    // return the return status of the executed command
-    let exit_status = maybe_exit_status.unwrap();
-    exit_status.success()
 }
 
 fn is_valid_device_selection(

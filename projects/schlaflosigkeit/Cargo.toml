@@ -5,8 +5,8 @@ authors = ["Tim Hütz <tim@huetz.biz>"]
 edition = "2018"
 
 [dependencies]
-insomnia = { path = "../insomnia" }
 chrono = "0.4.7"
 clap = {version = "2.33.0", features = ["yaml"]}
 fern = "0.5.8"
+insomnia = { path = "../insomnia" }
 log = "0.4.7"
