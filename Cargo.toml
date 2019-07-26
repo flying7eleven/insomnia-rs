@@ -1,5 +1,5 @@
 [workspace]
 members = [
-	"projects/schlaflosigkeit",
 	"projects/insomnia",
+	"projects/schlaflosigkeit",
 ]

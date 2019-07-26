@@ -4,26 +4,11 @@ use lazy_static::lazy_static;
 use log::{debug, error, info, LevelFilter};
 use regex::bytes::Regex;
 use std::collections::HashMap;
-use std::fmt;
 use std::process::{Command, Stdio};
 use std::thread::sleep;
 use std::time::Duration;
-use std::{error, thread};
-
-#[derive(Debug, Clone)]
-struct AudioDeviceError;
-
-impl fmt::Display for AudioDeviceError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "unknown audio device error")
-    }
-}
-
-impl error::Error for AudioDeviceError {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        None
-    }
-}
+use std::thread;
+use insomnia::AudioDeviceError;
 
 lazy_static! {
     static ref CARD_AND_DEVICES_REGEX: Regex = Regex::new(r"card (\d*):.*device (\d*):").unwrap();
