@@ -71,7 +71,7 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
             let duration_in_seconds = meta_reader.get_duration();
 
             let label_line = format!(
-                "{:.2} {:.2} \"{}.{}.{} {}:{}:{}\"\n",
+                "{:.2}\t{:.2}\t{}.{}.{} {}:{}:{}\n",
                 start_label,
                 start_label + duration_in_seconds,
                 &cap[3],
