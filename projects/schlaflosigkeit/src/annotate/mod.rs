@@ -61,7 +61,10 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
         for cap in CORRECT_FILE_NAME_REGEX.captures_iter(audio_file_path) {
             let maybe_meta_reader = WaveMetaReader::from_file(audio_file_path);
             if maybe_meta_reader.is_err() {
-                error!("Could not read the meta information of the file.");
+                error!(
+                    "Could not read the meta information of the file. The error was: {}",
+                    maybe_meta_reader.err().unwrap().to_string()
+                );
                 continue;
             }
             let meta_reader = maybe_meta_reader.unwrap();
