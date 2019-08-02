@@ -1,7 +1,8 @@
 use chrono::Local;
 use clap::{crate_authors, crate_description, crate_name, crate_version, load_yaml, App};
 use log::{error, LevelFilter};
-use schlaflosigkeit::record::run_command;
+use schlaflosigkeit::annotate::run_command_annotate;
+use schlaflosigkeit::record::run_command_record;
 
 fn initialize_logging() {
     // configure the logging framework and set the corresponding log level
@@ -39,7 +40,9 @@ fn main() {
 
     // check which subcommand should be executed and call it
     if let Some(matches) = matches.subcommand_matches("record") {
-        run_command(matches);
+        run_command_record(matches);
+    } else if let Some(matches) = matches.subcommand_matches("annotate") {
+        run_command_annotate(matches);
     } else {
         error!("No known subcommand was selected. Please refer to the help for information about how to use this application.");
     }

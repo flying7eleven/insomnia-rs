@@ -3,6 +3,15 @@ version: <filled automatically>
 author: <filled automatically>
 about: <filled automatically>
 subcommands:
+  - annotate:
+      about: Read a list of audio files and annotate them for later use in Audacity.
+      args:
+        - input_folder:
+            index: 1
+            help: The folder where all wave files are stored and which can be used to generate the annotations.
+        - output_file:
+            index: 2
+            help: The file in which the annotation labels should be stored.
   - record:
       about: Record audio files with a specific timing for later analasys (will be produce a lot of data).
       args:

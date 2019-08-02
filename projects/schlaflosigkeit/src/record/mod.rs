@@ -29,7 +29,7 @@ fn is_valid_device_selection(
     false
 }
 
-pub fn run_command(argument_matches: &ArgMatches) {
+pub fn run_command_record(argument_matches: &ArgMatches) {
     // before we continue we should ensure that the required recording tool is available
     if !is_recording_tool_available() {
         error!("The arecord tool seems not to be available on your computer. Terminating.");
