@@ -1,9 +1,10 @@
 use clap::ArgMatches;
 use insomnia::annotation::WaveMetaReader;
 use lazy_static::lazy_static;
-use log::{error, info};
+use log::{debug, error, info};
 use regex::Regex;
-use std::fs::read_dir;
+use std::fs::{read_dir, OpenOptions};
+use std::io::Write;
 
 lazy_static! {
     static ref CORRECT_FILE_NAME_REGEX: Regex =
@@ -23,6 +24,23 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
         return;
     }
 
+    //
+    let mut start_label: f64 = 0.0;
+    let mut label_file = match OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(argument_matches.value_of("output_file").unwrap())
+    {
+        Ok(file) => file,
+        Err(error) => {
+            error!(
+                "Could not open output file. The error was: {}",
+                error.to_string()
+            );
+            return;
+        }
+    };
+
     // loop through all found files and try to process them
     for maybe_audio_file_path in
         read_dir(argument_matches.value_of("input_folder").unwrap()).unwrap()
@@ -39,15 +57,8 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
             continue;
         }
 
-        //
+        // even if there should be one match, try to "loop" through it
         for cap in CORRECT_FILE_NAME_REGEX.captures_iter(audio_file_path) {
-            println!("Year: {}", &cap[1]);
-            println!("Month: {}", &cap[2]);
-            println!("Day: {}", &cap[3]);
-            println!("Hour: {}", &cap[4]);
-            println!("Minute: {}", &cap[5]);
-            println!("Second: {}", &cap[6]);
-
             let maybe_meta_reader = WaveMetaReader::from_file(audio_file_path);
             if maybe_meta_reader.is_err() {
                 error!("Could not read the meta information of the file.");
@@ -56,8 +67,20 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
             let meta_reader = maybe_meta_reader.unwrap();
             let duration_in_seconds = meta_reader.get_duration();
 
-            println!("Duration: {}s", duration_in_seconds);
-            println!("------")
+            let label_line = format!(
+                "{:.2} {:.2} \"{}.{}.{} {}:{}:{}\"\n",
+                start_label,
+                start_label + duration_in_seconds,
+                &cap[3],
+                &cap[2],
+                &cap[1],
+                &cap[4],
+                &cap[5],
+                &cap[6]
+            );
+            write!(&mut label_file, "{}", label_line);
+
+            start_label += duration_in_seconds;
         }
     }
 }
