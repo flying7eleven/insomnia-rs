@@ -3,6 +3,7 @@ name = "schlaflosigkeit"
 version = "0.3.0"
 authors = ["Tim Hütz <tim@huetz.biz>"]
 edition = "2018"
+description = "Tool for recording audio files and annotating them for audacity."
 
 [dependencies]
 chrono = "0.4"
