@@ -73,7 +73,7 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
             let label_line = format!(
                 "{:.2}\t{:.2}\t{}.{}.{} {}:{}:{}\n",
                 start_label,
-                start_label + duration_in_seconds,
+                start_label,
                 &cap[3],
                 &cap[2],
                 &cap[1],
