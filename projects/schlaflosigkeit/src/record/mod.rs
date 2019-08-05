@@ -77,8 +77,8 @@ pub fn run_command_record(argument_matches: &ArgMatches) {
     }
 
     // ensure a sensable recording duration was selected
-    if recording_duration < 60 || recording_duration > 600 {
-        panic!("Please select a recording duration between 1 and 10 minutes.");
+    if recording_duration < 60 || recording_duration > 3600 {
+        panic!("Please select a recording duration between 1 and 60 minutes.");
     }
 
     // wait until we reached the next full minute
