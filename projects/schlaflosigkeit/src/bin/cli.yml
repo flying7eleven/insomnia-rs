@@ -16,6 +16,10 @@ subcommands:
             long: range
             help: Use a range marker for the annotation and not just a single time point.
             takes_value: false
+        - no-date:
+            long: no-date
+            help: Do not include the full date in the label text.
+            takes_value: false
   - record:
       about: Record audio files with a specific timing for later analasys (will be produce a lot of data).
       args:
