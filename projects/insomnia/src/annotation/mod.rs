@@ -3,6 +3,7 @@ use log::{debug, error};
 use std::fs::File;
 use std::io;
 use std::io::Read;
+use std::path::Path;
 
 #[derive(Debug)]
 pub enum ReadError {
@@ -130,7 +131,7 @@ impl WaveMetaReader {
         let duration = f64::from(number_of_samples) / f64::from(samples_per_second);
 
         // return the gathered information
-        debug!("The data block is {} bytes long with {} bits/sample, a sample rate of {} samples/second and {} channels, this results in {} samples and a duration of {} seconds.", data_block_size_in_byte, bits_per_sample, samples_per_second, channels, number_of_samples, duration);
+        debug!("The data block for {} is {} bytes long with {} bits/sample, a sample rate of {} samples/second and {} channels, this results in {} samples and a duration of {} seconds.", Path::new(path).file_name().unwrap().to_str().unwrap(), data_block_size_in_byte, bits_per_sample, samples_per_second, channels, number_of_samples, duration);
         Ok(WaveMetaReader {
             _data_block_size_in_byte: data_block_size_in_byte,
             _bits_per_sample: bits_per_sample,
