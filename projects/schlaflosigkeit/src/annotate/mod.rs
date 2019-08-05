@@ -50,6 +50,9 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
     //
     let no_date = argument_matches.is_present("no-date");
 
+    //
+    let add_sub_markers = argument_matches.is_present("add-sub-markers");
+
     // loop through all found files and try to process them
     let mut ordered_file_list: Vec<String> = vec![];
     for maybe_audio_file_path in

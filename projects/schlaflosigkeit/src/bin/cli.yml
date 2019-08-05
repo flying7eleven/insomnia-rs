@@ -20,6 +20,10 @@ subcommands:
             long: no-date
             help: Do not include the full date in the label text.
             takes_value: false
+        - add-sub-markers:
+            long: add-sub-markers
+            help: Add markers every 10 minutes (if the range is longer then that).
+            takes_value: false
   - record:
       about: Record audio files with a specific timing for later analasys (will be produce a lot of data).
       args:
