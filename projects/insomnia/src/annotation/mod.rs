@@ -1,9 +1,8 @@
 use core::{fmt, mem};
 use log::{debug, error};
-use std::error::Error;
 use std::fs::File;
 use std::io;
-use std::io::{BufReader, Read};
+use std::io::Read;
 
 #[derive(Debug)]
 pub enum ReadError {
@@ -40,10 +39,10 @@ impl fmt::Display for ReadError {
 }
 
 pub struct WaveMetaReader {
-    data_block_size_in_byte: u32,
-    bits_per_sample: u16,
-    channels: u16,
-    samples_per_second: u32,
+    _data_block_size_in_byte: u32,
+    _bits_per_sample: u16,
+    _channels: u16,
+    _samples_per_second: u32,
     duration_in_seconds: f64,
 }
 
@@ -67,8 +66,6 @@ impl WaveMetaReader {
         // read the file size from the file based on the file header
         let mut file_size_based_on_heade_buffer = [0; 4];
         let _ = file_handle.read(&mut file_size_based_on_heade_buffer);
-        let file_size_based_on_header: u32 =
-            unsafe { mem::transmute(file_size_based_on_heade_buffer) };
 
         // the next four bytes should be the WAVE header
         let mut wave_header = [0; 4];
@@ -135,10 +132,10 @@ impl WaveMetaReader {
         // return the gathered information
         debug!("The data block is {} bytes long with {} bits/sample, a sample rate of {} samples/second and {} channels, this results in {} samples and a duration of {} seconds.", data_block_size_in_byte, bits_per_sample, samples_per_second, channels, number_of_samples, duration);
         Ok(WaveMetaReader {
-            data_block_size_in_byte,
-            bits_per_sample,
-            channels,
-            samples_per_second,
+            _data_block_size_in_byte: data_block_size_in_byte,
+            _bits_per_sample: bits_per_sample,
+            _channels: channels,
+            _samples_per_second: samples_per_second,
             duration_in_seconds: duration,
         })
     }

@@ -1,11 +1,11 @@
+use chrono::{Duration as OldDuration, TimeZone, Timelike, Utc};
 use clap::ArgMatches;
 use insomnia::annotation::WaveMetaReader;
 use lazy_static::lazy_static;
-use log::{debug, error, info};
+use log::{error, info};
 use regex::Regex;
 use std::fs::{read_dir, OpenOptions};
 use std::io::Write;
-use chrono::{NaiveDateTime, NaiveTime, NaiveDate, Timelike, Utc, TimeZone, Duration as OldDuration};
 use std::ops::Add;
 
 lazy_static! {
@@ -87,30 +87,29 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
             let duration_label = if range_mode {
                 let current_timestamp_str = format!(
                     "{:02}.{:02}.{:04} {:02}:{:02}:{:02}",
-                    &cap[3], &cap[2], &cap[1],
-                    &cap[4], &cap[5], &cap[6],
-
+                    &cap[3], &cap[2], &cap[1], &cap[4], &cap[5], &cap[6],
                 );
-                // let foo = Utc.ymd(&cap[1], 3, 1).and_hms(12,12,12);
-                let foo = Utc.datetime_from_str(current_timestamp_str.as_str(), "%d.%m.%Y %H:%M:%S").unwrap();
-                let new_end_date = foo.add(OldDuration::seconds(duration_in_seconds as i64));
+                let initial_parsed_start_datetime = Utc
+                    .datetime_from_str(current_timestamp_str.as_str(), "%d.%m.%Y %H:%M:%S")
+                    .unwrap();
+                let new_end_date = initial_parsed_start_datetime
+                    .add(OldDuration::seconds(duration_in_seconds as i64));
 
                 format!(
                     "{:02}:{:02}:{:02} - {:02}:{:02}:{:02}",
-                    &cap[4], &cap[5], &cap[6], new_end_date.hour(), new_end_date.minute(), new_end_date.second()
+                    &cap[4],
+                    &cap[5],
+                    &cap[6],
+                    new_end_date.hour(),
+                    new_end_date.minute(),
+                    new_end_date.second()
                 )
             } else {
-                format!(
-                    "{}:{}:{}",
-                    &cap[4], &cap[5], &cap[6]
-                )
+                format!("{}:{}:{}", &cap[4], &cap[5], &cap[6])
             };
 
             let label_line = if no_date {
-                format!(
-                    "{:.2}\t{:.2}\t{}\n",
-                    start_label, end_label, duration_label
-                )
+                format!("{:.2}\t{:.2}\t{}\n", start_label, end_label, duration_label)
             } else {
                 format!(
                     "{:.2}\t{:.2}\t{}.{}.{} {}\n",
@@ -118,7 +117,7 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
                 )
             };
 
-            write!(&mut label_file, "{}", label_line);
+            let _ = write!(&mut label_file, "{}", label_line);
 
             start_label += duration_in_seconds;
         }
