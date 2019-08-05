@@ -41,6 +41,9 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
         }
     };
 
+    // check if we should use range markers or not
+    let range_mode = argument_matches.is_present("range");
+
     // loop through all found files and try to process them
     for maybe_audio_file_path in
         read_dir(argument_matches.value_of("input_folder").unwrap()).unwrap()
@@ -70,16 +73,15 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
             let meta_reader = maybe_meta_reader.unwrap();
             let duration_in_seconds = meta_reader.get_duration();
 
+            let end_label = if range_mode {
+                start_label + duration_in_seconds
+            } else {
+                start_label
+            };
+
             let label_line = format!(
                 "{:.2}\t{:.2}\t{}.{}.{} {}:{}:{}\n",
-                start_label,
-                start_label,
-                &cap[3],
-                &cap[2],
-                &cap[1],
-                &cap[4],
-                &cap[5],
-                &cap[6]
+                start_label, end_label, &cap[3], &cap[2], &cap[1], &cap[4], &cap[5], &cap[6]
             );
             write!(&mut label_file, "{}", label_line);
 

@@ -12,6 +12,10 @@ subcommands:
         - output_file:
             index: 2
             help: The file in which the annotation labels should be stored.
+        - range:
+            long: range
+            help: Use a range marker for the annotation and not just a single time point.
+            takes_value: false
   - record:
       about: Record audio files with a specific timing for later analasys (will be produce a lot of data).
       args:
