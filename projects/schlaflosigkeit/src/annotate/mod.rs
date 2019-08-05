@@ -1,6 +1,6 @@
 use chrono::{Duration as OldDuration, TimeZone, Timelike, Utc};
 use clap::ArgMatches;
-use insomnia::annotation::WaveMetaReader;
+use insomnia::annotation::{FileAnnotator, WaveMetaReader};
 use lazy_static::lazy_static;
 use log::{error, info};
 use regex::Regex;
@@ -64,6 +64,8 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
     }
     ordered_file_list.sort_by(|a, b| a.partial_cmp(b).unwrap());
 
+    let mut file_start_time = 0;
+
     // loop through all found files and try to process them
     for audio_file_path in ordered_file_list {
         // ensure the skip all files which do not match the expected pattern
@@ -77,59 +79,22 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
 
         // even if there should be one match, try to "loop" through it
         for cap in CORRECT_FILE_NAME_REGEX.captures_iter(audio_file_path.borrow()) {
-            let maybe_meta_reader = WaveMetaReader::from_file(&audio_file_path);
-            if maybe_meta_reader.is_err() {
-                error!(
-                    "Could not read the meta information of the file. The error was: {}",
-                    maybe_meta_reader.err().unwrap().to_string()
-                );
+            let maybe_file_annotator =
+                FileAnnotator::from(&audio_file_path, file_start_time as u64, add_sub_markers);
+            if maybe_file_annotator.is_none() {
+                error!("Could not get a file annotator for {}", audio_file_path);
                 continue;
             }
-            let meta_reader = maybe_meta_reader.unwrap();
-            let duration_in_seconds = meta_reader.get_duration();
+            let file_annotator = maybe_file_annotator.unwrap();
+            let max_labels = file_annotator.get_max_labels();
 
-            let end_label = if range_mode {
-                start_label + duration_in_seconds
-            } else {
-                start_label
-            };
+            //
+            file_start_time = file_annotator.get_end_time();
 
-            let duration_label = if range_mode {
-                let current_timestamp_str = format!(
-                    "{:02}.{:02}.{:04} {:02}:{:02}:{:02}",
-                    &cap[3], &cap[2], &cap[1], &cap[4], &cap[5], &cap[6],
-                );
-                let initial_parsed_start_datetime = Utc
-                    .datetime_from_str(current_timestamp_str.as_str(), "%d.%m.%Y %H:%M:%S")
-                    .unwrap();
-                let new_end_date = initial_parsed_start_datetime
-                    .add(OldDuration::seconds(duration_in_seconds as i64));
-
-                format!(
-                    "{:02}:{:02}:{:02} - {:02}:{:02}:{:02}",
-                    &cap[4],
-                    &cap[5],
-                    &cap[6],
-                    new_end_date.hour(),
-                    new_end_date.minute(),
-                    new_end_date.second()
-                )
-            } else {
-                format!("{}:{}:{}", &cap[4], &cap[5], &cap[6])
-            };
-
-            let label_line = if no_date {
-                format!("{:.2}\t{:.2}\t{}\n", start_label, end_label, duration_label)
-            } else {
-                format!(
-                    "{:.2}\t{:.2}\t{}.{}.{} {}\n",
-                    start_label, end_label, &cap[3], &cap[2], &cap[1], duration_label
-                )
-            };
-
-            let _ = write!(&mut label_file, "{}", label_line);
-
-            start_label += duration_in_seconds;
+            //
+            for current_label in file_annotator.take(max_labels) {
+                let _ = write!(&mut label_file, "{}", current_label.get_label_line());
+            }
         }
     }
 }

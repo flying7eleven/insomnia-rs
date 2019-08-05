@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use core::{fmt, mem};
 use log::{debug, error};
 use std::fs::File;
@@ -143,5 +144,70 @@ impl WaveMetaReader {
 
     pub fn get_duration(&self) -> f64 {
         self.duration_in_seconds
+    }
+}
+
+pub struct AnnotationLabel {
+    start_time: NaiveDateTime,
+    end_time: NaiveDateTime,
+    show_date: bool,
+    show_range: bool,
+}
+
+impl AnnotationLabel {
+    pub fn get_label_line(&self) -> &str {
+        "foo\tfoo\tfoo\n"
+    }
+}
+
+pub struct FileAnnotator {
+    file_meta_information: WaveMetaReader,
+    max_annotations: usize,
+    next_annotation_idx: usize,
+    file_start_time: u64,
+}
+
+impl FileAnnotator {
+    pub fn from(file_name: &str, start_time: u64, add_sub_markers: bool) -> Option<FileAnnotator> {
+        let maybe_meta_reader = WaveMetaReader::from_file(file_name);
+        if !maybe_meta_reader.is_ok() {
+            return None;
+        }
+        Some(FileAnnotator {
+            file_meta_information: maybe_meta_reader.unwrap(),
+            max_annotations: 1,
+            next_annotation_idx: 0,
+            file_start_time: start_time,
+        })
+    }
+
+    pub fn get_end_time(&self) -> u64 {
+        self.file_start_time + self.file_meta_information.duration_in_seconds as u64
+    }
+
+    pub fn get_max_labels(&self) -> usize {
+        self.max_annotations
+    }
+}
+
+impl Iterator for FileAnnotator {
+    type Item = AnnotationLabel;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        //
+        if self.next_annotation_idx >= self.max_annotations {
+            return None;
+        }
+
+        //
+        self.next_annotation_idx += 1;
+
+        //
+        Some(AnnotationLabel {
+            start_time: NaiveDateTime::from_timestamp(0, 0),
+            end_time: NaiveDateTime::from_timestamp(0, 0),
+            show_date: false,
+            show_range: true,
+        })
     }
 }
