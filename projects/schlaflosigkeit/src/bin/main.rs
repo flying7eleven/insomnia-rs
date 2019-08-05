@@ -3,6 +3,7 @@ use clap::{crate_authors, crate_description, crate_name, crate_version, load_yam
 use log::{error, LevelFilter};
 use schlaflosigkeit::annotate::run_command_annotate;
 use schlaflosigkeit::record::run_command_record;
+use schlaflosigkeit::denoise::run_command_denoise;
 
 fn initialize_logging() {
     // configure the logging framework and set the corresponding log level
@@ -43,6 +44,8 @@ fn main() {
         run_command_record(matches);
     } else if let Some(matches) = matches.subcommand_matches("annotate") {
         run_command_annotate(matches);
+    } else if let Some(matches) = matches.subcommand_matches("denoise") {
+        run_command_denoise(matches);
     } else {
         error!("No known subcommand was selected. Please refer to the help for information about how to use this application.");
     }

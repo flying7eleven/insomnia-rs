@@ -39,3 +39,15 @@ subcommands:
             long: no-encoding
             help: Disable the encoding of the recorded files to mp3 using ffmpeg.
             takes_value: false
+  - denoise:
+      about: Try to denoise an audio file based on a noise audio-sample.
+      args:
+        - noise_sample:
+            index: 1
+            help: The audio sample of just the noise part which should be removed from the audio file.
+        - audio_file:
+            index: 2
+            help: The audio file which should be cleaned of the noise.
+        - output_file:
+            index: 3
+            help: The place where the denoised files hould be stored to.
