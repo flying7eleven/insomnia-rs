@@ -150,11 +150,15 @@ impl WaveMetaReader {
 pub struct AnnotationLabel {
     start_marker: f32,
     end_marker: f32,
+    used_label: String,
 }
 
 impl AnnotationLabel {
     pub fn get_label_line(&self) -> String {
-        format!("{:.02}\t{:.02}\tfoo\n", self.start_marker, self.end_marker)
+        format!(
+            "{:.02}\t{:.02}\t{}\n",
+            self.start_marker, self.end_marker, self.used_label
+        )
     }
 }
 
@@ -166,10 +170,16 @@ pub struct FileAnnotator {
     max_annotations: usize,
     next_annotation_idx: usize,
     last_start_time: f32,
+    is_range: bool,
 }
 
 impl FileAnnotator {
-    pub fn from(file_name: &str, start_time: u64, add_sub_markers: bool) -> Option<FileAnnotator> {
+    pub fn from(
+        file_name: &str,
+        file_start_date: NaiveDateTime,
+        start_time: u64,
+        add_sub_markers: bool,
+    ) -> Option<FileAnnotator> {
         // try to get the meta information from the audiof ile itself
         let maybe_meta_reader = WaveMetaReader::from_file(file_name);
         if !maybe_meta_reader.is_ok() {
@@ -179,13 +189,13 @@ impl FileAnnotator {
 
         // if we should add sub markers, determine a length for a sub-marker
         let slice_length = if add_sub_markers {
-            (meta_reader.get_duration() / 10.0) as u64
+            (meta_reader.get_duration() / 6.0) as u64
         } else {
             meta_reader.get_duration() as u64
         };
 
         // determine the nmber of labels we want to set for this part
-        let max_annotations = if add_sub_markers { 10 } else { 1 };
+        let max_annotations = if add_sub_markers { 6 } else { 1 };
 
         // create the new file annotator
         Some(FileAnnotator {
@@ -194,6 +204,8 @@ impl FileAnnotator {
             file_start_time_in_seconds: start_time,
             last_start_time: start_time as f32,
             max_annotations,
+            is_range: true,
+            file_base_time: file_start_date,
             next_annotation_idx: 0,
         })
     }
@@ -221,12 +233,44 @@ impl Iterator for FileAnnotator {
 
         // calculate the required times for the labels
         let old_last_start_time = self.last_start_time;
-        self.last_start_time += self.slice_duration_in_seconds as f32;
+        let end_marker_offset = if self.is_range {
+            self.slice_duration_in_seconds as f32
+        } else {
+            0.0
+        };
+        self.last_start_time += end_marker_offset;
+
+        let new_end_time_for_slice = self.file_base_time
+            + OldDuration::seconds(
+                self.slice_duration_in_seconds as i64 * self.next_annotation_idx as i64,
+            );
+
+        let actual_slice_start_time = if self.max_annotations > 1 {
+            self.file_base_time
+                + OldDuration::seconds(
+                    self.slice_duration_in_seconds as i64 * (self.next_annotation_idx as i64 - 1),
+                )
+        } else {
+            self.file_base_time
+        };
+
+        let used_label = if self.is_range {
+            format!(
+                "{} - {}",
+                actual_slice_start_time.format("%H:%M:%S").to_string(),
+                new_end_time_for_slice.format("%H:%M:%S").to_string()
+            )
+        } else {
+            actual_slice_start_time
+                .format("%d.%m.%Y %H:%M:%S")
+                .to_string()
+        };
 
         // return the new annotation label
         Some(AnnotationLabel {
             start_marker: old_last_start_time,
             end_marker: self.last_start_time,
+            used_label,
         })
     }
 }

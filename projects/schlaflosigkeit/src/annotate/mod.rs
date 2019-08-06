@@ -1,4 +1,4 @@
-use chrono::{Duration as OldDuration, TimeZone, Timelike, Utc};
+use chrono::{Duration as OldDuration, NaiveDate, NaiveDateTime, TimeZone, Timelike, Utc};
 use clap::ArgMatches;
 use insomnia::annotation::{FileAnnotator, WaveMetaReader};
 use lazy_static::lazy_static;
@@ -79,8 +79,22 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
 
         // even if there should be one match, try to "loop" through it
         for cap in CORRECT_FILE_NAME_REGEX.captures_iter(audio_file_path.borrow()) {
-            let maybe_file_annotator =
-                FileAnnotator::from(&audio_file_path, file_start_time as u64, add_sub_markers);
+            let current_timestamp_str = format!(
+                "{:02}.{:02}.{:04} {:02}:{:02}:{:02}",
+                &cap[3], &cap[2], &cap[1], &cap[4], &cap[5], &cap[6],
+            );
+
+            let initial_parsed_start_datetime = Utc
+                .datetime_from_str(current_timestamp_str.as_str(), "%d.%m.%Y %H:%M:%S")
+                .unwrap()
+                .naive_utc();
+
+            let maybe_file_annotator = FileAnnotator::from(
+                &audio_file_path,
+                initial_parsed_start_datetime,
+                file_start_time as u64,
+                add_sub_markers,
+            );
             if maybe_file_annotator.is_none() {
                 error!("Could not get a file annotator for {}", audio_file_path);
                 continue;
