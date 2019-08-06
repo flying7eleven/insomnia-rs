@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{Duration as OldDuration, NaiveDateTime};
 use core::{fmt, mem};
 use log::{debug, error};
 use std::fs::File;
@@ -148,41 +148,58 @@ impl WaveMetaReader {
 }
 
 pub struct AnnotationLabel {
-    start_time: NaiveDateTime,
-    end_time: NaiveDateTime,
-    show_date: bool,
-    show_range: bool,
+    start_marker: f32,
+    end_marker: f32,
 }
 
 impl AnnotationLabel {
-    pub fn get_label_line(&self) -> &str {
-        "foo\tfoo\tfoo\n"
+    pub fn get_label_line(&self) -> String {
+        format!("{:.02}\t{:.02}\tfoo\n", self.start_marker, self.end_marker)
     }
 }
 
 pub struct FileAnnotator {
-    file_meta_information: WaveMetaReader,
+    file_duration_in_seconds: u64,
+    slice_duration_in_seconds: u64,
+    file_start_time_in_seconds: u64,
+    file_base_time: NaiveDateTime,
     max_annotations: usize,
     next_annotation_idx: usize,
-    file_start_time: u64,
+    last_start_time: f32,
 }
 
 impl FileAnnotator {
     pub fn from(file_name: &str, start_time: u64, add_sub_markers: bool) -> Option<FileAnnotator> {
+        // try to get the meta information from the audiof ile itself
         let maybe_meta_reader = WaveMetaReader::from_file(file_name);
         if !maybe_meta_reader.is_ok() {
             return None;
         }
+        let meta_reader = maybe_meta_reader.unwrap();
+
+        // if we should add sub markers, determine a length for a sub-marker
+        let slice_length = if add_sub_markers {
+            (meta_reader.get_duration() / 10.0) as u64
+        } else {
+            meta_reader.get_duration() as u64
+        };
+
+        // determine the nmber of labels we want to set for this part
+        let max_annotations = if add_sub_markers { 10 } else { 1 };
+
+        // create the new file annotator
         Some(FileAnnotator {
-            file_meta_information: maybe_meta_reader.unwrap(),
-            max_annotations: 1,
+            file_duration_in_seconds: meta_reader.get_duration() as u64,
+            slice_duration_in_seconds: slice_length,
+            file_start_time_in_seconds: start_time,
+            last_start_time: start_time as f32,
+            max_annotations,
             next_annotation_idx: 0,
-            file_start_time: start_time,
         })
     }
 
     pub fn get_end_time(&self) -> u64 {
-        self.file_start_time + self.file_meta_information.duration_in_seconds as u64
+        self.file_start_time_in_seconds + self.file_duration_in_seconds as u64
     }
 
     pub fn get_max_labels(&self) -> usize {
@@ -194,20 +211,22 @@ impl Iterator for FileAnnotator {
     type Item = AnnotationLabel;
 
     fn next(&mut self) -> Option<Self::Item> {
-        //
+        // if we reached the max. number of annotations, return None to signal that
         if self.next_annotation_idx >= self.max_annotations {
             return None;
         }
 
-        //
+        // since we return a new annotation, increase the id for the next one
         self.next_annotation_idx += 1;
 
-        //
+        // calculate the required times for the labels
+        let old_last_start_time = self.last_start_time;
+        self.last_start_time += self.slice_duration_in_seconds as f32;
+
+        // return the new annotation label
         Some(AnnotationLabel {
-            start_time: NaiveDateTime::from_timestamp(0, 0),
-            end_time: NaiveDateTime::from_timestamp(0, 0),
-            show_date: false,
-            show_range: true,
+            start_marker: old_last_start_time,
+            end_marker: self.last_start_time,
         })
     }
 }
