@@ -1,13 +1,12 @@
-use chrono::{Duration as OldDuration, NaiveDate, NaiveDateTime, TimeZone, Timelike, Utc};
+use chrono::{TimeZone, Utc};
 use clap::ArgMatches;
-use insomnia::annotation::{FileAnnotator, WaveMetaReader};
+use insomnia::annotation::FileAnnotator;
 use lazy_static::lazy_static;
 use log::{error, info};
 use regex::Regex;
 use std::borrow::Borrow;
 use std::fs::{read_dir, OpenOptions};
 use std::io::Write;
-use std::ops::Add;
 
 lazy_static! {
     static ref CORRECT_FILE_NAME_REGEX: Regex =
@@ -28,7 +27,6 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
     }
 
     //
-    let mut start_label: f64 = 0.0;
     let mut label_file = match OpenOptions::new()
         .append(true)
         .create(true)

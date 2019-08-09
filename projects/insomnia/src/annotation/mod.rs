@@ -183,7 +183,7 @@ impl FileAnnotator {
     ) -> Option<FileAnnotator> {
         // try to get the meta information from the audiof ile itself
         let maybe_meta_reader = WaveMetaReader::from_file(file_name);
-        if !maybe_meta_reader.is_ok() {
+        if maybe_meta_reader.is_err() {
             return None;
         }
         let meta_reader = maybe_meta_reader.unwrap();
