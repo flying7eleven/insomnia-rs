@@ -14,11 +14,7 @@ subcommands:
             help: The file in which the annotation labels should be stored.
         - range:
             long: range
-            help: Use a range marker for the annotation and not just a single time point.
-            takes_value: false
-        - no-date:
-            long: no-date
-            help: Do not include the full date in the label text.
+            help: Use range information in the label text instead of just the start time of the label.
             takes_value: false
         - add-sub-markers:
             long: add-sub-markers

@@ -179,6 +179,7 @@ impl FileAnnotator {
         file_start_date: NaiveDateTime,
         start_time: u64,
         add_sub_markers: bool,
+        is_range: bool,
     ) -> Option<FileAnnotator> {
         // try to get the meta information from the audiof ile itself
         let maybe_meta_reader = WaveMetaReader::from_file(file_name);
@@ -204,7 +205,7 @@ impl FileAnnotator {
             file_start_time_in_seconds: start_time,
             last_start_time: start_time as f32,
             max_annotations,
-            is_range: true,
+            is_range,
             file_base_time: file_start_date,
             next_annotation_idx: 0,
         })
@@ -233,11 +234,7 @@ impl Iterator for FileAnnotator {
 
         // calculate the required times for the labels
         let old_last_start_time = self.last_start_time;
-        let end_marker_offset = if self.is_range {
-            self.slice_duration_in_seconds as f32
-        } else {
-            0.0
-        };
+        let end_marker_offset = self.slice_duration_in_seconds as f32;
         self.last_start_time += end_marker_offset;
 
         let new_end_time_for_slice = self.file_base_time
@@ -261,9 +258,7 @@ impl Iterator for FileAnnotator {
                 new_end_time_for_slice.format("%H:%M:%S").to_string()
             )
         } else {
-            actual_slice_start_time
-                .format("%d.%m.%Y %H:%M:%S")
-                .to_string()
+            actual_slice_start_time.format("%H:%M:%S").to_string()
         };
 
         // return the new annotation label

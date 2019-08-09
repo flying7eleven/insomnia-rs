@@ -48,9 +48,6 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
     let range_mode = argument_matches.is_present("range");
 
     //
-    let no_date = argument_matches.is_present("no-date");
-
-    //
     let add_sub_markers = argument_matches.is_present("add-sub-markers");
 
     // loop through all found files and try to process them
@@ -94,6 +91,7 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
                 initial_parsed_start_datetime,
                 file_start_time as u64,
                 add_sub_markers,
+                range_mode,
             );
             if maybe_file_annotator.is_none() {
                 error!("Could not get a file annotator for {}", audio_file_path);
