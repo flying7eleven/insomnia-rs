@@ -80,23 +80,36 @@ pub fn get_available_cards() -> Result<HashMap<u8, (u8, u8)>, AudioDeviceError> 
     Ok(device_list)
 }
 
-pub fn record_audio(card: u8, device: u8, duration_in_seconds: u32) -> Option<String> {
+pub fn record_audio(
+    card: u8,
+    device: u8,
+    duration_in_seconds: u32,
+    record_mono: bool,
+) -> Option<String> {
     let file_prefix = Local::now()
         .naive_local()
         .format("%Y%m%d%H%M%S")
         .to_string();
 
-    let record_status = Command::new("arecord")
+    let mut record_command = Command::new("arecord");
+    record_command
         .arg(format!("-Dhw:{},{}", card, device))
         .arg(format!("-d{}", duration_in_seconds))
         .arg("-fS16_LE")
-        .arg("-c2")
         .arg("-r48000")
         .arg(format!("{}.wav", file_prefix))
         .stderr(Stdio::null())
-        .stdout(Stdio::null())
-        .status();
+        .stdout(Stdio::null());
 
+    // ensure the right flag (mono or stereo) is set
+    if record_mono {
+        record_command.arg("-c1");
+    } else {
+        record_command.arg("-c2");
+    }
+
+    // now we can start the program and check its return status
+    let record_status = record_command.status();
     if record_status.is_ok() && record_status.unwrap().success() {
         return Some(file_prefix);
     }

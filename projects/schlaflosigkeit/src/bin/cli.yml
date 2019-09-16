@@ -39,3 +39,7 @@ subcommands:
             long: no-encoding
             help: Disable the encoding of the recorded files to mp3 using ffmpeg.
             takes_value: false
+        - mono:
+            long: mono
+            help: Record the audio file in mono instead of stereo.
+            takes_value: false

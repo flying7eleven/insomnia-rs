@@ -90,7 +90,12 @@ pub fn run_command_record(argument_matches: &ArgMatches) {
 
     // record audio files endlessly and convert them to mp3s
     loop {
-        let file_prefix = record_audio(audio_card, audio_device, recording_duration);
+        let file_prefix = record_audio(
+            audio_card,
+            audio_device,
+            recording_duration,
+            argument_matches.is_present("mono"),
+        );
         if file_prefix.is_some() {
             let file_prefix_unwrapped = file_prefix.unwrap();
             info!("The recording {} was finished", file_prefix_unwrapped);
