@@ -1,9 +1,8 @@
 use chrono::Local;
 use clap::{crate_authors, crate_description, crate_name, crate_version, load_yaml, App};
 use log::{error, LevelFilter};
-
-use schlaflosigkeit::annotate::run_command_annotate;
-use schlaflosigkeit::record::run_command_record;
+use schlaflosigkeit::commands::annotate::run_command_annotate;
+use schlaflosigkeit::commands::record::run_command_record;
 
 fn initialize_logging() {
     // configure the logging framework and set the corresponding log level
