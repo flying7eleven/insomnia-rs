@@ -1,8 +1,6 @@
+use crate::{convert_audio_file, get_available_cards, is_recording_tool_available, record_audio};
 use chrono::{Local, Timelike};
 use clap::ArgMatches;
-use insomnia::{
-    convert_audio_file, get_available_cards, is_recording_tool_available, record_audio,
-};
 use log::{error, info};
 use std::collections::HashMap;
 use std::thread::{sleep, spawn};

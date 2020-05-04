@@ -1,6 +1,6 @@
+use crate::annotation::FileAnnotator;
 use chrono::{TimeZone, Utc};
 use clap::ArgMatches;
-use insomnia::annotation::FileAnnotator;
 use lazy_static::lazy_static;
 use log::{error, info};
 use regex::Regex;
