@@ -1,6 +1,7 @@
 use chrono::Local;
 use clap::{crate_authors, crate_description, crate_name, crate_version, load_yaml, App};
 use log::{error, LevelFilter};
+
 use schlaflosigkeit::annotate::run_command_annotate;
 use schlaflosigkeit::record::run_command_record;
 
@@ -31,7 +32,7 @@ fn main() {
 
     // configure the command line parser
     let configuration_parser_config = load_yaml!("cli.yml");
-    let matches = App::from_yaml(configuration_parser_config)
+    let matches = App::from(configuration_parser_config)
         .author(crate_authors!())
         .version(crate_version!())
         .name(crate_name!())
