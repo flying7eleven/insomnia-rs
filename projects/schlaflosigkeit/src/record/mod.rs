@@ -5,8 +5,7 @@ use insomnia::{
 };
 use log::{error, info};
 use std::collections::HashMap;
-use std::thread;
-use std::thread::sleep;
+use std::thread::{sleep, spawn};
 use std::time::Duration;
 
 fn wait_until_full_minute() {
@@ -100,12 +99,15 @@ pub fn run_command_record(argument_matches: &ArgMatches) {
             let file_prefix_unwrapped = file_prefix.unwrap();
             info!("The recording {} was finished", file_prefix_unwrapped);
             if should_encode_files {
-                thread::spawn(move || {
+                spawn(move || {
                     convert_audio_file(file_prefix_unwrapped);
                 });
             }
         } else {
-            error!("Failed to record an audio stream.");
+            error!(
+                "Failed to record an audio stream from card {} and device {}",
+                audio_card, audio_device
+            );
         }
     }
 }
