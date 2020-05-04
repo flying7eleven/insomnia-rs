@@ -97,7 +97,7 @@ pub fn record_audio(
         .arg(format!("-d{}", duration_in_seconds))
         .arg("-fS16_LE")
         .arg("-r48000")
-        .arg(format!("{}.wav", file_prefix))
+        .arg(format!("{}_c{:02}d{:02}.wav", file_prefix, card, device))
         .stderr(Stdio::null())
         .stdout(Stdio::null());
 
