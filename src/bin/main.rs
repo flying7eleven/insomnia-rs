@@ -1,8 +1,30 @@
 use chrono::Local;
-use clap::{crate_authors, crate_description, crate_name, crate_version, load_yaml, App};
+use clap::{crate_authors, crate_description, crate_version, Clap};
 use log::{error, LevelFilter};
-use schlaflosigkeit::commands::annotate::run_command_annotate;
-use schlaflosigkeit::commands::record::run_command_record;
+
+use schlaflosigkeit::commands::annotate::{run_command_annotate, AnnotateCommandOptions};
+use schlaflosigkeit::commands::record::{run_command_record, RecordCommandOptions};
+
+#[derive(Clap)]
+#[clap(version = crate_version!(), author = crate_authors!(), about = crate_description!())]
+struct Opts {
+    /// The sub-command whoch should be executed.
+    #[clap(subcommand)]
+    subcmd: SubCommand,
+
+    /// The configuration file which should be used for processing audio data.
+    #[clap(short, long, default_value = "default.toml")]
+    config: String,
+}
+
+#[derive(Clap)]
+enum SubCommand {
+    #[clap(version = crate_version!(), author = crate_authors!(), about = crate_description!())]
+    Record(RecordCommandOptions),
+
+    #[clap(version = crate_version!(), author = crate_authors!(), about = crate_description!())]
+    Annotate(AnnotateCommandOptions),
+}
 
 fn initialize_logging() {
     // configure the logging framework and set the corresponding log level
@@ -30,20 +52,11 @@ fn main() {
     initialize_logging();
 
     // configure the command line parser
-    let configuration_parser_config = load_yaml!("cli.yml");
-    let matches = App::from(configuration_parser_config)
-        .author(crate_authors!())
-        .version(crate_version!())
-        .name(crate_name!())
-        .about(crate_description!())
-        .get_matches();
+    let opts: Opts = Opts::parse();
 
     // check which subcommand should be executed and call it
-    if let Some(matches) = matches.subcommand_matches("record") {
-        run_command_record(matches);
-    } else if let Some(matches) = matches.subcommand_matches("annotate") {
-        run_command_annotate(matches);
-    } else {
-        error!("No known subcommand was selected. Please refer to the help for information about how to use this application.");
+    match opts.subcmd {
+        SubCommand::Annotate(suboptions) => run_command_annotate(suboptions),
+        SubCommand::Record(suboptions) => run_command_record(suboptions),
     }
 }

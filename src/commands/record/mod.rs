@@ -1,10 +1,35 @@
 use crate::{convert_audio_file, get_available_cards, is_recording_tool_available, record_audio};
 use chrono::{Local, Timelike};
 use clap::ArgMatches;
+use clap::Clap;
 use log::{error, info};
 use std::collections::HashMap;
 use std::thread::{sleep, spawn};
 use std::time::Duration;
+
+/// Record audio files with a specific timing for later analysis (will be produce a lot of data).
+#[derive(Clap)]
+pub struct RecordCommandOptions {
+    /// Select the number of minutes to record in a single file.
+    #[clap(long, default_value = "1")]
+    duration: u8,
+
+    /// Select the audio card to use for the recording process.
+    #[clap(long, default_value = "0")]
+    card: u8,
+
+    /// Select the audio device to use for the recording process.
+    #[clap(long, default_value = "0")]
+    device: u8,
+
+    /// Disable the encoding of the recorded files to mp3 using ffmpeg.
+    #[clap(long)]
+    no_encoding: bool,
+
+    /// Record the audio file in mono instead of stereo (not all cards support that).
+    #[clap(long)]
+    mono: bool,
+}
 
 fn wait_until_full_minute() {
     let last_timestamp = Local::now().naive_local();
@@ -26,7 +51,7 @@ fn is_valid_device_selection(
     false
 }
 
-pub fn run_command_record(argument_matches: &ArgMatches) {
+pub fn run_command_record(options: RecordCommandOptions) {
     // before we continue we should ensure that the required recording tool is available
     if !is_recording_tool_available() {
         error!("The arecord tool seems not to be available on your computer. Terminating.");
@@ -39,37 +64,16 @@ pub fn run_command_record(argument_matches: &ArgMatches) {
         .unwrap();
 
     // get the recording duration
-    let recording_duration = if argument_matches.is_present("duration") {
-        let duration_match = argument_matches.value_of("duration").unwrap();
-        60 * duration_match.parse::<u32>().unwrap()
-    } else {
-        60
-    };
-
-    // get the audio card
-    let audio_card = if argument_matches.is_present("card") {
-        let card_match = argument_matches.value_of("card").unwrap();
-        card_match.parse::<u8>().unwrap()
-    } else {
-        0
-    };
-
-    // get the audio device
-    let audio_device = if argument_matches.is_present("device") {
-        let device_match = argument_matches.value_of("device").unwrap();
-        device_match.parse::<u8>().unwrap()
-    } else {
-        0
-    };
+    let recording_duration = 60 * u32::from(options.duration);
 
     // check if we should encode the files or not
-    let should_encode_files = !argument_matches.is_present("no-encoding");
+    let should_encode_files = !options.no_encoding;
     if !should_encode_files {
         info!("Encoding of the audio files was disabled by a runtime flag");
     }
 
     // be sure that the audio device selection makes sense
-    if !is_valid_device_selection(&available_audio_devices, audio_card, audio_device) {
+    if !is_valid_device_selection(&available_audio_devices, options.card, options.device) {
         panic!("An invalid combination of audio devices was detected.");
     }
 
@@ -88,10 +92,10 @@ pub fn run_command_record(argument_matches: &ArgMatches) {
     // record audio files endlessly and convert them to mp3s
     loop {
         let file_prefix = record_audio(
-            audio_card,
-            audio_device,
+            options.card,
+            options.device,
             recording_duration,
-            argument_matches.is_present("mono"),
+            options.mono,
         );
         if file_prefix.is_some() {
             let file_prefix_unwrapped = file_prefix.unwrap();
@@ -104,7 +108,7 @@ pub fn run_command_record(argument_matches: &ArgMatches) {
         } else {
             error!(
                 "Failed to record an audio stream from card {} and device {}",
-                audio_card, audio_device
+                options.card, options.device
             );
         }
     }

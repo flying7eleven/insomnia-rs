@@ -1,6 +1,7 @@
 use crate::annotation::FileAnnotator;
 use chrono::{TimeZone, Utc};
 use clap::ArgMatches;
+use clap::Clap;
 use lazy_static::lazy_static;
 use log::{error, info};
 use regex::Regex;
@@ -13,7 +14,28 @@ lazy_static! {
         Regex::new(r".*(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})\.wav").unwrap();
 }
 
-pub fn run_command_annotate(argument_matches: &ArgMatches) {
+/// A subcommand for controlling testing
+#[derive(Clap)]
+pub struct AnnotateCommandOptions {
+    /// The folder where all wave files are stored and which can be used to generate the annotations.
+    #[clap(index = 1)]
+    input_folder: String,
+
+    /// The file in which the annotation labels should be stored.
+    #[clap(index = 2)]
+    output_file: String,
+
+    /// Use range information in the label text instead of just the start time of the label.
+    #[clap(long)]
+    range: bool,
+
+    /// Add markers every 10 minutes (if the range is longer then that).
+    #[clap(long)]
+    add_sub_markers: bool,
+}
+
+pub fn run_command_annotate(options: AnnotateCommandOptions) {
+    /*
     // ensure ta input folder was specified
     if !argument_matches.is_present("input_folder") {
         error!("No input folder specified. Cannot process files for annotation label generation.");
@@ -24,13 +46,13 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
     if !argument_matches.is_present("output_file") {
         error!("No output file for the labels specified. Cannot process files for annotation label generation.");
         return;
-    }
+    }*/
 
     //
     let mut label_file = match OpenOptions::new()
         .append(true)
         .create(true)
-        .open(argument_matches.value_of("output_file").unwrap())
+        .open(options.output_file)
     {
         Ok(file) => file,
         Err(error) => {
@@ -42,17 +64,9 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
         }
     };
 
-    // check if we should use range markers or not
-    let range_mode = argument_matches.is_present("range");
-
-    //
-    let add_sub_markers = argument_matches.is_present("add-sub-markers");
-
     // loop through all found files and try to process them
     let mut ordered_file_list: Vec<String> = vec![];
-    for maybe_audio_file_path in
-        read_dir(argument_matches.value_of("input_folder").unwrap()).unwrap()
-    {
+    for maybe_audio_file_path in read_dir(options.input_folder).unwrap() {
         let audio_file_path_obj = maybe_audio_file_path.unwrap().path();
         let audio_file_path = audio_file_path_obj.to_str().unwrap();
         ordered_file_list.push(audio_file_path.to_string())
@@ -88,8 +102,8 @@ pub fn run_command_annotate(argument_matches: &ArgMatches) {
                 &audio_file_path,
                 initial_parsed_start_datetime,
                 file_start_time as u64,
-                add_sub_markers,
-                range_mode,
+                options.add_sub_markers,
+                options.range,
             );
             if maybe_file_annotator.is_none() {
                 error!("Could not get a file annotator for {}", audio_file_path);
