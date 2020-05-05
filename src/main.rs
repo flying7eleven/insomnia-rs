@@ -8,7 +8,7 @@ use schlaflosigkeit::commands::record::{run_command_record, RecordCommandOptions
 #[derive(Clap)]
 #[clap(version = crate_version!(), author = crate_authors!(), about = crate_description!())]
 struct Opts {
-    /// The sub-command whoch should be executed.
+    /// The sub-command which should be executed.
     #[clap(subcommand)]
     subcmd: SubCommand,
 

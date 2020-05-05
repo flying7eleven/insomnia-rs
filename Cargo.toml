@@ -7,7 +7,7 @@ description = "Tool for recording audio files and annotating them for audacity."
 
 [[bin]]
 name = "schlaflosigkeit"
-path = "src/bin/main.rs"
+path = "src/main.rs"
 
 [dependencies]
 chrono = "0.4"
