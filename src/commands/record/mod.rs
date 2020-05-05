@@ -6,10 +6,7 @@ use chrono::{Local, Timelike};
 use clap::Clap;
 use log::{error, info};
 
-use crate::{
-    convert_audio_file, get_available_cards, is_recording_tool_available, record_audio,
-    InsomniaProject, RecordingDeviceConfiguration,
-};
+use crate::{get_available_cards, is_recording_tool_available, record_audio, InsomniaProject};
 
 /// Record audio files with a specific timing for later analysis (will be produce a lot of data).
 #[derive(Clap)]
@@ -90,6 +87,12 @@ pub fn run_command_record(options: RecordCommandOptions, config: InsomniaProject
         panic!("Please select a recording duration between 1 and 60 minutes.");
     }
 
+    // just print the information where we store the files
+    info!(
+        "Storing recordings in {}",
+        config.data_directory
+    );
+
     // wait until we reached the next full minute
     info!(
         "The current time is {}. We are waiting for the next full minute to start.",
@@ -104,12 +107,14 @@ pub fn run_command_record(options: RecordCommandOptions, config: InsomniaProject
             .keys()
             .map(|key| {
                 let current_device = config.input[key].clone();
+                let output_folder = config.data_directory.clone();
                 spawn(move || {
                     let file_prefix = record_audio(
                         current_device.card,
                         current_device.device,
                         recording_duration,
                         current_device.mono,
+                        output_folder,
                     );
                     if file_prefix.is_some() {
                         let file_prefix_unwrapped = file_prefix.unwrap();

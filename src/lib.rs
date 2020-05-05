@@ -10,6 +10,7 @@ use regex::bytes::Regex;
 use serde::{Deserialize, Serialize};
 
 use lazy_static::lazy_static;
+use std::path::Path;
 
 pub mod annotation;
 pub mod commands;
@@ -152,19 +153,22 @@ pub fn record_audio(
     device: u8,
     duration_in_seconds: u32,
     record_mono: bool,
+    output_folder: String,
 ) -> Option<String> {
     let file_prefix = Local::now()
         .naive_local()
         .format("%Y%m%d%H%M%S")
         .to_string();
 
+    let output_file_pattern = format!("{}_c{:02}d{:02}.wav", file_prefix, card, device);
+    let output_file = Path::new(&output_folder).join(Path::new(&output_file_pattern));
     let mut record_command = Command::new("arecord");
     record_command
         .arg(format!("-Dhw:{},{}", card, device))
         .arg(format!("-d{}", duration_in_seconds))
         .arg("-fS16_LE")
         .arg("-r48000")
-        .arg(format!("{}_c{:02}d{:02}.wav", file_prefix, card, device))
+        .arg(output_file.to_str().unwrap())
         .stderr(Stdio::null())
         .stdout(Stdio::null());
 
