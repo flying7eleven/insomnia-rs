@@ -1,6 +1,6 @@
 use crate::{
     convert_audio_file, get_available_cards, is_recording_tool_available, record_audio,
-    InsomniaProject,
+    InsomniaProject, RecordingDeviceConfiguration,
 };
 use chrono::{Local, Timelike};
 use clap::ArgMatches;
@@ -17,21 +17,9 @@ pub struct RecordCommandOptions {
     #[clap(long, default_value = "1")]
     duration: u8,
 
-    /// Select the audio card to use for the recording process.
-    #[clap(long, default_value = "0")]
-    card: u8,
-
-    /// Select the audio device to use for the recording process.
-    #[clap(long, default_value = "0")]
-    device: u8,
-
     /// Disable the encoding of the recorded files to mp3 using ffmpeg.
     #[clap(long)]
     no_encoding: bool,
-
-    /// Record the audio file in mono instead of stereo (not all cards support that).
-    #[clap(long)]
-    mono: bool,
 }
 
 fn wait_until_full_minute() {
@@ -61,6 +49,12 @@ pub fn run_command_record(options: RecordCommandOptions, config: InsomniaProject
         return;
     }
 
+    // ensure that at least one input device is configured
+    if config.input.len() < 1 {
+        error!("No input device is configured. Terminating.");
+        return;
+    }
+
     // get all audio devices of the computer
     let available_audio_devices = get_available_cards()
         .map_err(|_error| panic!("Could not find any suitable audio devices. Terminating."))
@@ -75,8 +69,16 @@ pub fn run_command_record(options: RecordCommandOptions, config: InsomniaProject
         info!("Encoding of the audio files was disabled by a runtime flag");
     }
 
+    // get the first device from our list (we already checked that one device exists)
+    let first_device_id = config.input.keys().next().unwrap();
+    let first_device: RecordingDeviceConfiguration = config.input[first_device_id].clone();
+
     // be sure that the audio device selection makes sense
-    if !is_valid_device_selection(&available_audio_devices, options.card, options.device) {
+    if !is_valid_device_selection(
+        &available_audio_devices,
+        first_device.card,
+        first_device.device,
+    ) {
         panic!("An invalid combination of audio devices was detected.");
     }
 
@@ -95,10 +97,10 @@ pub fn run_command_record(options: RecordCommandOptions, config: InsomniaProject
     // record audio files endlessly and convert them to mp3s
     loop {
         let file_prefix = record_audio(
-            options.card,
-            options.device,
+            first_device.card,
+            first_device.device,
             recording_duration,
-            options.mono,
+            first_device.mono,
         );
         if file_prefix.is_some() {
             let file_prefix_unwrapped = file_prefix.unwrap();
@@ -111,7 +113,7 @@ pub fn run_command_record(options: RecordCommandOptions, config: InsomniaProject
         } else {
             error!(
                 "Failed to record an audio stream from card {} and device {}",
-                options.card, options.device
+                first_device.card, first_device.device
             );
         }
     }
