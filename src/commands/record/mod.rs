@@ -1,13 +1,15 @@
+use std::collections::HashMap;
+use std::thread::{sleep, spawn, JoinHandle};
+use std::time::Duration;
+
+use chrono::{Local, Timelike};
+use clap::Clap;
+use log::{error, info};
+
 use crate::{
     convert_audio_file, get_available_cards, is_recording_tool_available, record_audio,
     InsomniaProject, RecordingDeviceConfiguration,
 };
-use chrono::{Local, Timelike};
-use clap::Clap;
-use log::{error, info};
-use std::collections::HashMap;
-use std::thread::{sleep, spawn};
-use std::time::Duration;
 
 /// Record audio files with a specific timing for later analysis (will be produce a lot of data).
 #[derive(Clap)]
@@ -68,17 +70,19 @@ pub fn run_command_record(options: RecordCommandOptions, config: InsomniaProject
         info!("Encoding of the audio files was disabled by a runtime flag");
     }
 
-    // get the first device from our list (we already checked that one device exists)
-    let first_device_id = config.input.keys().next().unwrap();
-    let first_device: RecordingDeviceConfiguration = config.input[first_device_id].clone();
-
     // be sure that the audio device selection makes sense
-    if !is_valid_device_selection(
-        &available_audio_devices,
-        first_device.card,
-        first_device.device,
-    ) {
-        panic!("An invalid combination of audio devices was detected.");
+    for current_device_key in config.input.keys() {
+        let current_device = config.input[current_device_key].clone();
+        if !is_valid_device_selection(
+            &available_audio_devices,
+            current_device.card,
+            current_device.device,
+        ) {
+            panic!(
+                "An invalid combination of audio devices (cd:{},{}) was detected.",
+                current_device.card, current_device.device
+            );
+        }
     }
 
     // ensure a sensable recording duration was selected
@@ -93,27 +97,41 @@ pub fn run_command_record(options: RecordCommandOptions, config: InsomniaProject
     );
     wait_until_full_minute();
 
-    // record audio files endlessly and convert them to mp3s
+    // record audio files endlessly and convert them to mp3s (if requested)
     loop {
-        let file_prefix = record_audio(
-            first_device.card,
-            first_device.device,
-            recording_duration,
-            first_device.mono,
-        );
-        if file_prefix.is_some() {
-            let file_prefix_unwrapped = file_prefix.unwrap();
-            info!("The recording {} was finished", file_prefix_unwrapped);
-            if should_encode_files {
+        let handles = config
+            .input
+            .keys()
+            .map(|key| {
+                let current_device = config.input[key].clone();
                 spawn(move || {
-                    convert_audio_file(file_prefix_unwrapped);
-                });
-            }
-        } else {
-            error!(
-                "Failed to record an audio stream from card {} and device {}",
-                first_device.card, first_device.device
-            );
+                    let file_prefix = record_audio(
+                        current_device.card,
+                        current_device.device,
+                        recording_duration,
+                        current_device.mono,
+                    );
+                    if file_prefix.is_some() {
+                        let file_prefix_unwrapped = file_prefix.unwrap();
+                        info!(
+                            "The recording {} of card {} and device {} was finished",
+                            file_prefix_unwrapped, current_device.card, current_device.device
+                        );
+                    } else {
+                        error!(
+                            "Failed to record an audio stream from card {} and device {}",
+                            current_device.card, current_device.device
+                        );
+                    }
+                })
+            })
+            .collect::<Vec<JoinHandle<_>>>();
+
+        // wait for the recording threads to finish, should be nearly the same but we better
+        // try to sync everything here
+        for handle in handles {
+            handle.join().unwrap();
         }
+        info!("All recording threads finished, continuing for the next run...");
     }
 }
