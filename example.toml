@@ -1,6 +1,6 @@
 # option to redirect the files which are generated to a specific output directory. if no value is set explicitly,
 # the default is used (the current directory where the executable is ran).
-# data_directoriy = "/tmp"
+# data_directory = "/tmp"
 
 # define the audio devices which should be used for recording. These devices are used simutaniously for recording
 # audio

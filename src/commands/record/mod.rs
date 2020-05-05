@@ -1,4 +1,7 @@
-use crate::{convert_audio_file, get_available_cards, is_recording_tool_available, record_audio};
+use crate::{
+    convert_audio_file, get_available_cards, is_recording_tool_available, record_audio,
+    InsomniaProject,
+};
 use chrono::{Local, Timelike};
 use clap::ArgMatches;
 use clap::Clap;
@@ -51,7 +54,7 @@ fn is_valid_device_selection(
     false
 }
 
-pub fn run_command_record(options: RecordCommandOptions) {
+pub fn run_command_record(options: RecordCommandOptions, config: InsomniaProject) {
     // before we continue we should ensure that the required recording tool is available
     if !is_recording_tool_available() {
         error!("The arecord tool seems not to be available on your computer. Terminating.");

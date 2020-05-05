@@ -1,17 +1,74 @@
-pub mod annotation;
-pub mod commands;
-
-use chrono::Local;
 use core::fmt;
-use lazy_static::lazy_static;
-use log::{debug, error, info};
-use regex::bytes::Regex;
 use std::collections::HashMap;
+use std::env::current_dir;
 use std::error;
 use std::process::{Command, Stdio};
 
+use chrono::Local;
+use log::{debug, error, info};
+use regex::bytes::Regex;
+use serde::{Deserialize, Serialize};
+
+use lazy_static::lazy_static;
+
+pub mod annotation;
+pub mod commands;
+
 lazy_static! {
     static ref CARD_AND_DEVICES_REGEX: Regex = Regex::new(r"card (\d*):.*device (\d*):").unwrap();
+}
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct RecordingDeviceConfiguration {
+    #[serde(default = "RecordingDeviceConfiguration::default_card")]
+    pub card: u8,
+
+    #[serde(default = "RecordingDeviceConfiguration::default_device")]
+    pub device: u8,
+
+    #[serde(default = "RecordingDeviceConfiguration::default_mono")]
+    pub mono: bool,
+}
+
+impl RecordingDeviceConfiguration {
+    fn default_device() -> u8 {
+        0
+    }
+
+    fn default_card() -> u8 {
+        0
+    }
+
+    fn default_mono() -> bool {
+        false
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct InsomniaProject {
+    #[serde(default = "InsomniaProject::default_data_directory")]
+    pub data_directory: String,
+
+    #[serde(default = "InsomniaProject::default_input")]
+    pub input: HashMap<String, RecordingDeviceConfiguration>,
+}
+
+impl InsomniaProject {
+    fn default_data_directory() -> String {
+        match current_dir() {
+            Ok(current_dir) => match current_dir.to_str() {
+                Some(current_dir_str) => current_dir_str.to_string(),
+                None => "".to_string(),
+            },
+            Err(_) => "".to_string(),
+        }
+    }
+
+    fn default_input() -> HashMap<String, RecordingDeviceConfiguration> {
+        HashMap::new()
+    }
 }
 
 #[derive(Debug, Clone)]
