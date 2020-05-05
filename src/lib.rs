@@ -67,7 +67,16 @@ impl InsomniaProject {
     }
 
     fn default_input() -> HashMap<String, RecordingDeviceConfiguration> {
-        HashMap::new()
+        let mut default_device = HashMap::new();
+        default_device.insert(
+            "default_device".to_string(),
+            RecordingDeviceConfiguration {
+                card: 0,
+                device: 0,
+                mono: false,
+            },
+        );
+        default_device
     }
 }
 
