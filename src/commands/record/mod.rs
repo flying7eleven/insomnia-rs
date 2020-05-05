@@ -3,7 +3,6 @@ use crate::{
     InsomniaProject, RecordingDeviceConfiguration,
 };
 use chrono::{Local, Timelike};
-use clap::ArgMatches;
 use clap::Clap;
 use log::{error, info};
 use std::collections::HashMap;

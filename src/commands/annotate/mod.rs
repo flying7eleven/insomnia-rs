@@ -1,7 +1,6 @@
 use crate::annotation::FileAnnotator;
 use crate::InsomniaProject;
 use chrono::{TimeZone, Utc};
-use clap::ArgMatches;
 use clap::Clap;
 use lazy_static::lazy_static;
 use log::{error, info};
@@ -35,7 +34,7 @@ pub struct AnnotateCommandOptions {
     add_sub_markers: bool,
 }
 
-pub fn run_command_annotate(options: AnnotateCommandOptions, config: InsomniaProject) {
+pub fn run_command_annotate(options: AnnotateCommandOptions, _: InsomniaProject) {
     /*
     // ensure ta input folder was specified
     if !argument_matches.is_present("input_folder") {

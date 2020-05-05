@@ -5,8 +5,7 @@ use log::{error, LevelFilter};
 use schlaflosigkeit::commands::annotate::{run_command_annotate, AnnotateCommandOptions};
 use schlaflosigkeit::commands::config::{run_command_config, ConfigCommandOptions};
 use schlaflosigkeit::commands::record::{run_command_record, RecordCommandOptions};
-use schlaflosigkeit::{InsomniaProject, RecordingDeviceConfiguration};
-use std::collections::HashMap;
+use schlaflosigkeit::InsomniaProject;
 use std::fs::File;
 use std::io::Read;
 
@@ -67,7 +66,7 @@ fn main() {
     let configuration: InsomniaProject = match File::open(opts.project) {
         Ok(mut file) => {
             let mut content = String::new();
-            file.read_to_string(&mut content);
+            let _ = file.read_to_string(&mut content);
             match toml::from_str(content.as_str()) {
                 Ok(object) => object,
                 Err(error) => {
