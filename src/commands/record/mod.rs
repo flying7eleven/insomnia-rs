@@ -1,10 +1,24 @@
-use crate::{convert_audio_file, get_available_cards, is_recording_tool_available, record_audio};
-use chrono::{Local, Timelike};
-use clap::ArgMatches;
-use log::{error, info};
 use std::collections::HashMap;
-use std::thread::{sleep, spawn};
+use std::thread::{sleep, spawn, JoinHandle};
 use std::time::Duration;
+
+use chrono::{Local, Timelike};
+use clap::Clap;
+use log::{error, info};
+
+use crate::{get_available_cards, is_recording_tool_available, record_audio, InsomniaProject};
+
+/// Record audio files with a specific timing for later analysis (will be produce a lot of data).
+#[derive(Clap)]
+pub struct RecordCommandOptions {
+    /// Select the number of minutes to record in a single file.
+    #[clap(long, default_value = "1")]
+    duration: u8,
+
+    /// Disable the encoding of the recorded files to mp3 using ffmpeg.
+    #[clap(long)]
+    no_encoding: bool,
+}
 
 fn wait_until_full_minute() {
     let last_timestamp = Local::now().naive_local();
@@ -26,10 +40,16 @@ fn is_valid_device_selection(
     false
 }
 
-pub fn run_command_record(argument_matches: &ArgMatches) {
+pub fn run_command_record(options: RecordCommandOptions, config: InsomniaProject) {
     // before we continue we should ensure that the required recording tool is available
     if !is_recording_tool_available() {
         error!("The arecord tool seems not to be available on your computer. Terminating.");
+        return;
+    }
+
+    // ensure that at least one input device is configured
+    if config.input.len() < 1 {
+        error!("No input device is configured. Terminating.");
         return;
     }
 
@@ -39,44 +59,39 @@ pub fn run_command_record(argument_matches: &ArgMatches) {
         .unwrap();
 
     // get the recording duration
-    let recording_duration = if argument_matches.is_present("duration") {
-        let duration_match = argument_matches.value_of("duration").unwrap();
-        60 * duration_match.parse::<u32>().unwrap()
-    } else {
-        60
-    };
-
-    // get the audio card
-    let audio_card = if argument_matches.is_present("card") {
-        let card_match = argument_matches.value_of("card").unwrap();
-        card_match.parse::<u8>().unwrap()
-    } else {
-        0
-    };
-
-    // get the audio device
-    let audio_device = if argument_matches.is_present("device") {
-        let device_match = argument_matches.value_of("device").unwrap();
-        device_match.parse::<u8>().unwrap()
-    } else {
-        0
-    };
+    let recording_duration = 60 * u32::from(options.duration);
 
     // check if we should encode the files or not
-    let should_encode_files = !argument_matches.is_present("no-encoding");
+    let should_encode_files = !options.no_encoding;
     if !should_encode_files {
         info!("Encoding of the audio files was disabled by a runtime flag");
     }
 
     // be sure that the audio device selection makes sense
-    if !is_valid_device_selection(&available_audio_devices, audio_card, audio_device) {
-        panic!("An invalid combination of audio devices was detected.");
+    for current_device_key in config.input.keys() {
+        let current_device = config.input[current_device_key].clone();
+        if !is_valid_device_selection(
+            &available_audio_devices,
+            current_device.card,
+            current_device.device,
+        ) {
+            panic!(
+                "An invalid combination of audio devices (cd:{},{}) was detected.",
+                current_device.card, current_device.device
+            );
+        }
     }
 
     // ensure a sensable recording duration was selected
     if recording_duration < 60 || recording_duration > 3600 {
         panic!("Please select a recording duration between 1 and 60 minutes.");
     }
+
+    // just print the information where we store the files
+    info!(
+        "Storing recordings in {}",
+        config.data_directory
+    );
 
     // wait until we reached the next full minute
     info!(
@@ -85,27 +100,43 @@ pub fn run_command_record(argument_matches: &ArgMatches) {
     );
     wait_until_full_minute();
 
-    // record audio files endlessly and convert them to mp3s
+    // record audio files endlessly and convert them to mp3s (if requested)
     loop {
-        let file_prefix = record_audio(
-            audio_card,
-            audio_device,
-            recording_duration,
-            argument_matches.is_present("mono"),
-        );
-        if file_prefix.is_some() {
-            let file_prefix_unwrapped = file_prefix.unwrap();
-            info!("The recording {} was finished", file_prefix_unwrapped);
-            if should_encode_files {
+        let handles = config
+            .input
+            .keys()
+            .map(|key| {
+                let current_device = config.input[key].clone();
+                let output_folder = config.data_directory.clone();
                 spawn(move || {
-                    convert_audio_file(file_prefix_unwrapped);
-                });
-            }
-        } else {
-            error!(
-                "Failed to record an audio stream from card {} and device {}",
-                audio_card, audio_device
-            );
+                    let file_prefix = record_audio(
+                        current_device.card,
+                        current_device.device,
+                        recording_duration,
+                        current_device.mono,
+                        output_folder,
+                    );
+                    if file_prefix.is_some() {
+                        let file_prefix_unwrapped = file_prefix.unwrap();
+                        info!(
+                            "The recording {} of card {} and device {} was finished",
+                            file_prefix_unwrapped, current_device.card, current_device.device
+                        );
+                    } else {
+                        error!(
+                            "Failed to record an audio stream from card {} and device {}",
+                            current_device.card, current_device.device
+                        );
+                    }
+                })
+            })
+            .collect::<Vec<JoinHandle<_>>>();
+
+        // wait for the recording threads to finish, should be nearly the same but we better
+        // try to sync everything here
+        for handle in handles {
+            handle.join().unwrap();
         }
+        info!("All recording threads finished, continuing for the next run...");
     }
 }
