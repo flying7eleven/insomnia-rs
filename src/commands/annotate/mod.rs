@@ -10,7 +10,7 @@ use std::io::Write;
 
 lazy_static! {
     static ref CORRECT_FILE_NAME_REGEX: Regex =
-        Regex::new(r".*(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})\.wav").unwrap();
+        Regex::new(r".*(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})_.*\.wav").unwrap();
 }
 
 pub fn run_command_annotate(argument_matches: &ArgMatches) {
