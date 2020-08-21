@@ -157,7 +157,7 @@ pub fn record_audio(
 ) -> Option<String> {
     let file_prefix = Local::now()
         .naive_local()
-        .format("%Y%m%d%H%M%S.%f")
+        .format("%Y%m%d%H%M%S_%f")
         .to_string();
 
     let output_file_pattern = format!("{}_c{:02}d{:02}.wav", file_prefix, card, device);
