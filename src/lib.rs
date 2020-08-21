@@ -167,7 +167,7 @@ pub fn record_audio(
         .arg(format!("-Dhw:{},{}", card, device))
         .arg(format!("-d{}", duration_in_seconds))
         .arg("-fS16_LE")
-        .arg("-r48000")
+        .arg("-r44100")
         .arg(output_file.to_str().unwrap())
         .stderr(Stdio::null())
         .stdout(Stdio::null());
