@@ -157,7 +157,7 @@ pub fn record_audio(
 ) -> Option<String> {
     let file_prefix = Local::now()
         .naive_local()
-        .format("%Y%m%d%H%M%S")
+        .format("%Y%m%d%H%M%S_%f")
         .to_string();
 
     let output_file_pattern = format!("{}_c{:02}d{:02}.wav", file_prefix, card, device);
@@ -167,7 +167,7 @@ pub fn record_audio(
         .arg(format!("-Dhw:{},{}", card, device))
         .arg(format!("-d{}", duration_in_seconds))
         .arg("-fS16_LE")
-        .arg("-r48000")
+        .arg("-r44100")
         .arg(output_file.to_str().unwrap())
         .stderr(Stdio::null())
         .stdout(Stdio::null());

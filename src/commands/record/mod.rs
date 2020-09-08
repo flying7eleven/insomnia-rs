@@ -82,7 +82,7 @@ pub fn run_command_record(options: RecordCommandOptions, config: InsomniaProject
         }
     }
 
-    // ensure a sensable recording duration was selected
+    // ensure a sensible recording duration was selected
     if recording_duration < 60 || recording_duration > 3600 {
         panic!("Please select a recording duration between 1 and 60 minutes.");
     }
